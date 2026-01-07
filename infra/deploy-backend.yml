@@ -1,0 +1,52 @@
+---
+- name: Deploy Update Backend Django (Safe Deep Clean)
+  hosts: local_server
+  vars:
+    project_dir: '/home/webadm1/fim_backend'
+    git_repo: 'git@github.com:ichramsyah/backend-django-paramadina.git'
+    branch_name: 'main'
+
+  tasks:
+    - name: 0. Atasi Masalah 'Dubious Ownership' Git
+      command: git config --global --add safe.directory {{ project_dir }}
+
+    - name: 1. Tarik kodingan terbaru dari GitHub (Git Pull)
+      git:
+        repo: '{{ git_repo }}'
+        dest: '{{ project_dir }}'
+        version: '{{ branch_name }}'
+        force: yes
+        accept_hostkey: yes
+        key_file: /home/webadm1/.ssh/id_rsa
+      register: git_output
+
+    - name: 2. Install dependencies (Pip)
+      pip:
+        requirements: '{{ project_dir }}/requirements.txt'
+        virtualenv: '{{ project_dir }}/venv'
+        virtualenv_command: python3 -m venv
+
+    - name: 3. Migrasi Database
+      command: '{{ project_dir }}/venv/bin/python {{ project_dir }}/manage.py migrate'
+
+    # --- DATA WIPE ---
+    - name: 4. Hard Reset Docker Data (Tanpa Uninstall)
+      shell: |
+        cd {{ project_dir }}
+
+        sudo systemctl stop docker
+        sudo systemctl stop docker.socket
+        sudo systemctl stop containerd
+
+        sudo rm -rf /var/lib/docker
+
+        sudo systemctl start containerd
+        sudo systemctl start docker
+
+        docker compose up -d --build --remove-orphans
+      args:
+        executable: /bin/bash
+
+    - name: Info Selesai
+      debug:
+        msg: 'Deployment Selesai! Server sudah dibersihkan dan versi terbaru live.'
