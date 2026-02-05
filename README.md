@@ -18,7 +18,7 @@
 [![Trivy](https://img.shields.io/badge/Trivy_Scan-47BAE8?style=for-the-badge&logo=aquasecurity&logoColor=white)](https://trivy.dev/)
 [![AWS EC2](https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white)](https://aws.amazon.com/ec2/)
 
-> **Disclaimer**: This project is for portfolio and showcase purposes only. It demonstrates the design and logic of a FIM agent but requires additional hardening for production use.
+> **Disclaimer**: This project is for portfolio and showcase purposes only. It demonstrates the design and logic of a Distributed Host Integrity Monitoring Platform but requires additional hardening for production use.
 
 ## 📖 Overview
 
@@ -49,6 +49,8 @@ graph TD
         subgraph "Backend Layer (Dockerized)"
             API["Django REST API (Gunicorn)"]
             DB[("SQLite Database")]
+            Cron["Docker Cron Job (Auto-Purging)"]
+            Archive[("CSV Archive (Monthly Reports)")]
         end
 
         %% Internal Data Flow
@@ -58,6 +60,8 @@ graph TD
         Agent -- "2. Scan File" --> YARA
         Agent -- "3. Send Alert (JSON)" --> API
         API -- "Store Data" --> DB
+        Cron -- "Monthly Archive" --> DB
+        DB -- "Export Logs" --> Archive
     end
 
     subgraph "SaaS Central View"
@@ -66,6 +70,8 @@ graph TD
 
     %% External Data Flow
     Dashboard -- "Fetch Aggregated Logs (REST)" --> API
+    Dashboard -- "Check Service Health" --> API
+    API -- "Status Check" --> Incrond
 ```
 
 ## 📂 Project Structure
@@ -117,25 +123,25 @@ graph TD
 
 ### 🔍 Advanced Detection & Forensics
 
-- **Host-Based Real-time Agent**: Built on Python & Linux **Auditd** to capture granular forensic details (**User ID**, **Process Name**, **Working Directory**). Implements **Context-Aware Filtering** to distinguish anomalies based on operational hours.
-- **Hybrid Threat Detection**: Combines **Behavioral Analysis** with **YARA Content Inspection** to detect complex attack patterns like **RCE**, **PHP Webshells**, and **Obfuscated Code**.
-- **Automated Self-Healing**: The agent automatically recovers crashed `auditd` services and optimizes buffer backlogs (8k limit) to prevent log loss.
+- **Host-Based Real-time Agent**: Built on Python & Linux Auditd to capture granular forensic details (User ID, Process Name, Working Directory). Implements **Context-Aware Filtering** to distinguish anomalies based on operational hours.
+- **Hybrid Threat Detection**: Combines **Behavioral Analysis** with **YARA Content Inspection** to detect complex attack patterns like RCE, PHP Webshells, and Obfuscated Code.
+- **Offline Data Resilience**: Integrated **SQLite local buffering** to prevent log loss during network instability, with automated re-sync mechanisms.
 
 ### ⚡ Distributed Architecture & Security
 
-- **Independently Operable Backends**: Distributed Django architecture where each node operates independently, supported by **Shared-Secret JWT Authentication** for secure, consistent cross-server access.
-- **Secure Monitoring Stack**: Containerized **Prometheus & Grafana** configured with **Localhost Binding (127.0.0.1)**, ensuring metric data is accessible only via secure SSH Tunnels.
-- **Real-time Service Health**: Continuous monitoring of the `Incron` daemon status, reporting agent availability directly to the Centralized Dashboard.
+- **Independently Operable Backends**: Distributed Django architecture where each node operates independently, secured by **Shared-Secret JWT Authentication**.
+- **Hardened Monitoring Stack**: Containerized Prometheus & Grafana with **Localhost Binding (127.0.0.1)**, enforcing access exclusively via secure SSH Tunnels.
+- **Autonomous Watchdog & Health**: Real-time Incron monitoring and Cron-based self-healing routines to ensure 99.9% service uptime on edge nodes.
 
 ### 📊 Centralized Control & Visualization
 
-- **Unified Dashboard (Single Pane of Glass)**: A Next.js-based interface with **Unified Access Control** and **Multi-Server API Aggregation**, allowing real-time monitoring of multiple nodes in a single session.
-- **Automated Data Lifecycle**: Custom Django Management Commands executed via **Docker Cron Jobs** to routinely archive historical logs to CSV, keeping the database lightweight (**Auto-Purging**).
+- **Unified Dashboard (Single Pane of Glass)**: Next.js interface featuring **Multi-Server API Aggregation** for real-time monitoring of global nodes in a single session.
+- **Automated Data Lifecycle**: Docker-based Cron jobs for **Monthly Archival & Auto-Purging**, maintaining peak database performance by offloading historical data to CSV.
 
-### � DevOps & Automation
+### 🏗️ DevOps & Automation
 
-- **Automated CI/CD Pipeline**: GitHub Actions & Ansible strategy featuring **Deep Clean Deployment** (removing Docker residue) and autonomous handling of dependencies and database migrations.
-- **Shift-Left Security**: Integrated **Trivy Vulnerability Scanner** in the pipeline with a **Zero-Tolerance Policy** for Critical and High vulnerabilities.
+- **Deep-Clean CI/CD Pipeline**: GitHub Actions & Ansible strategy featuring autonomous dependency handling and **Docker Residue Cleanup** for stable deployments.
+- **Shift-Left Security**: Integrated **Trivy Vulnerability Scanner** with a **Zero-Tolerance Policy** for Critical/High vulnerabilities during the build phase.
 
 ## 🛠️ Tech Stack
 
@@ -143,6 +149,10 @@ graph TD
 
 - **Python 3**: The core runtime for the agent logic.
 - **YARA**: Embedded malware analysis engine for signature-based detection.
+- **Cron**: Manages automated system tasks and maintenance to ensure high availability and data integrity.
+  - **Watchdog Mechanism**: Periodic health-checks and self-healing for Incron and Auditd services.
+  - **Automated Maintenance**: Monthly service rotation and physical monitoring integrity tests.
+  - **Data Retention Policy**: Monthly automated log archival to CSV and database cleanup via Django management commands.
 - **Incron**: Uses `inotify` triggers for real-time file system monitoring.
 - **Linux Auditd**: Captures deep forensic data (User ID, Process Name) via syscalls.
 - **Bash Scripting**: Used for self-healing and service recovery mechanisms.
