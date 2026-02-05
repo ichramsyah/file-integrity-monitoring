@@ -76,6 +76,36 @@ graph TD
     API -- "Status Check" --> Incrond
 ```
 
+### 🌍 Distributed Network Topology
+
+While the diagram above shows the internal logic of a single server, the diagram below illustrates how the **Centralized Dashboard** connects to multiple distributed nodes to form a unified monitoring network.
+
+```mermaid
+graph TD
+   User(("👤 Security Admin"))
+
+    subgraph "Central Command (SaaS Layer)"
+        Dashboard["🖥️ Next.js Dashboard"]
+    end
+
+    subgraph "Distributed Edge Infrastructure"
+        direction LR
+        NodeA["Server A"]
+        NodeB["Server B"]
+        NodeC["Server C"]
+        NodeD["Server D"]
+    end
+
+    %% Flows
+    User ==> Dashboard
+    Dashboard -- "1. Aggregated Query (HTTPS)" --> NodeA
+    Dashboard -- "2. Aggregated Query (HTTPS)" --> NodeB
+    Dashboard -- "3. Aggregated Query (HTTPS)" --> NodeC
+    Dashboard -- "4. Aggregated Query (HTTPS)" --> NodeD
+
+    linkStyle 1,2,3,4 stroke:#2980b9,stroke-width:2px;
+```
+
 ## 📂 Project Structure
 
 ```bash
@@ -202,6 +232,7 @@ _This starts the Local Backend Aggregator (Gunicorn/Django) and Monitoring Stack
 Run these steps on the same monitored server:
 
 #### A. Install Dependencies
+
 ```bash
 cd agent
 pip install -r requirements.txt
@@ -209,7 +240,9 @@ pip install -r requirements.txt
 ```
 
 #### B. Setup File Watching (Incron)
+
 Trigger the agent immediately upon file events.
+
 ```bash
 # 1. Install Incron
 sudo apt install incron
@@ -221,7 +254,9 @@ echo "root" >> /etc/incron.allow
 ```
 
 #### C. Setup Automated Maintenance (Crontab)
+
 Ensure self-healing and periodic health checks.
+
 ```bash
 # Edit crontab: sudo crontab -e
 
@@ -236,7 +271,9 @@ Ensure self-healing and periodic health checks.
 ```
 
 #### D. Verify Agent Configuration
+
 Edit `agent/src/agent.py` to point to your local backend:
+
 ```python
 API_INGEST_URL = "http://127.0.0.1:8000/api/ingest/fim/"
 ```
