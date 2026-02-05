@@ -1,3 +1,6 @@
+<img width="1920" height="1080" alt="fim" src="https://github.com/user-attachments/assets/dcf65664-aea7-4c22-88cf-eea5bf24e65f" />
+
+
 # 🛡️ Distributed Host Integrity Monitoring Platform (DHIMP)
 
 [![Python](https://img.shields.io/badge/Python_3-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
